@@ -1,0 +1,14 @@
+{
+    "name": "opportunityos/main",
+    "description": "AI-Powered Email Opportunity Scanner",
+    "type": "project",
+    "require": {
+        "php": ">=7.4",
+        "google/apiclient": "^2.15"
+    },
+    "autoload": {
+        "psr-4": {
+            "OpportunityOS\\": "includes/"
+        }
+    }
+}
