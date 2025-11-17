@@ -94,17 +94,12 @@ $connected = isset($_GET['connected']) && $_GET['connected'] === 'true';
             </div>
             <div style="padding: 1.5rem;">
                 <div style="margin-bottom: 1.5rem;">
-                    <label for="tone-select" style="display: block; font-weight: 500; margin-bottom: 0.5rem; color: #374151;">Communication Tone</label>
+                    <label for="tone-select" style="display: block; font-weight: 500; margin-bottom: 0.5rem; color: #374151;">Communication Style</label>
                     <select id="tone-select" onchange="generateDraft()" style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 4px; font-size: 1rem; background: white; cursor: pointer;">
-                        <option value="">Select a tone...</option>
-                        <option value="friendly">Friendly (Paul Graham/YC) - Conversational, helpful</option>
-                        <option value="contrarian">Contrarian (Peter Thiel) - Provocative questions</option>
-                        <option value="formal">Formal (Executive) - Structured, professional</option>
-                        <option value="consulting">Consulting (McKinsey/BCG) - Strategic, ROI-focused</option>
-                        <option value="creative">Creative (Agency) - Storytelling, human-centered</option>
-                        <option value="data_driven">Data-Driven (a16z) - Analytical, pattern recognition</option>
-                        <option value="horowitz">Horowitz (Ben Horowitz) - War stories, brutal honesty</option>
-                        <option value="mcphee">McPhee (John McPhee) - Deep narrative journalism</option>
+                        <option value="">Select a style...</option>
+                        <option value="direct">Direct/Brief - Super short, gets to the point (Sam Altman style)</option>
+                        <option value="warm">Warm/Consultative - Builds rapport, references specifics</option>
+                        <option value="formal">Professional/Formal - Traditional executive search</option>
                     </select>
                 </div>
 

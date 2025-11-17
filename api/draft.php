@@ -13,7 +13,7 @@ if (!isset($_SESSION['user_id'])) {
 
 // Get request parameters
 $opportunityId = $_GET['id'] ?? null;
-$tone = $_GET['tone'] ?? 'friendly';
+$tone = $_GET['tone'] ?? 'warm';
 
 if (!$opportunityId) {
     http_response_code(400);
@@ -21,10 +21,10 @@ if (!$opportunityId) {
     exit;
 }
 
-// Validate tone
-$validTones = ['friendly', 'contrarian', 'formal', 'consulting', 'creative', 'data_driven', 'horowitz', 'mcphee'];
+// Validate tone - 3 personality styles
+$validTones = ['direct', 'warm', 'formal'];
 if (!in_array($tone, $validTones)) {
-    $tone = 'friendly';
+    $tone = 'warm';
 }
 
 try {
@@ -64,27 +64,48 @@ function generateEmailDraft($opportunity, $tone) {
     $toneInstructions = getToneInstructions($tone);
 
     // Build the prompt
-    $prompt = "You are drafting an outreach email in response to this opportunity:
+    $prompt = "You're writing an outreach email to an actual person. This needs to sound like it came from an executive search consultant - not an AI.
 
-**Company:** {$opportunity['company_name']}
-**Sender:** {$opportunity['sender']}
-**Email Subject:** {$opportunity['email_subject']}
-**Type:** {$opportunity['classification']}
-**Email Preview:** {$opportunity['email_snippet']}
+**THEIR EMAIL:**
+From: {$opportunity['sender']}
+Subject: {$opportunity['email_subject']}
+Preview: {$opportunity['email_snippet']}
+Company: {$opportunity['company_name']}
+Type: {$opportunity['classification']}
 
 {$toneInstructions}
 
-**Requirements:**
-- Email body must be UNDER 150 words
-- Include a compelling subject line
-- Be authentic and professional
-- Reference specific details from their email when possible
-- Include a clear call to action
+**CRITICAL - AVOID THESE AI TELLS:**
+❌ \"I hope this email finds you well\"
+❌ \"I wanted to reach out\"
+❌ \"I'd love to connect\"
+❌ \"I came across your...\"
+❌ Long formulaic intros
+❌ Bullet points or structured formatting
+❌ Perfect grammar (occasional fragments are fine)
+❌ Overly enthusiastic tone
 
-Return ONLY valid JSON in this exact format:
+**DO THIS INSTEAD:**
+✓ Start with a question, specific reference, or direct statement
+✓ Use natural transitions (\"Actually,\" \"Quick thing,\" \"So,\" \"Anyway\")
+✓ Reference something specific from THEIR email
+✓ Keep it conversational - like you're typing quickly between meetings
+✓ 2-3 short paragraphs MAX (aim for 80-120 words total)
+✓ One clear ask at the end
+✓ Subject line should be short and natural (4-7 words)
+
+**STRUCTURE VARIATION (pick one randomly):**
+- Start with a question about something specific they mentioned
+- Lead with a quick observation about their company/space
+- Open with a direct statement of why you're reaching out
+- Reference a mutual connection or context
+
+Write like a busy consultant who types fast and gets to the point.
+
+Return ONLY valid JSON:
 {
-  \"subject\": \"your subject line here\",
-  \"body\": \"your email body here\"
+  \"subject\": \"short natural subject line\",
+  \"body\": \"email body as plain text with \\n for line breaks\"
 }";
 
     // Call Claude API
@@ -145,30 +166,60 @@ Return ONLY valid JSON in this exact format:
 
 function getToneInstructions($tone) {
     $instructions = [
-        'friendly' => "**Tone: Paul Graham/YC Style - Friendly & Conversational**
-Write like you're talking to a peer over coffee. Use first names, be helpful and genuine, skip the formalities. Think: \"Hey, I saw your note and wanted to reach out...\" Keep it warm, direct, and human.",
+        'direct' => "**PERSONALITY: DIRECT/BRIEF (Sam Altman style)**
 
-        'contrarian' => "**Tone: Peter Thiel - Contrarian & Provocative**
-Challenge assumptions with thoughtful questions. Don't just agree - offer a unique perspective they haven't considered. Make them think. Ask: \"What if you're solving the wrong problem?\" or \"Have you considered the second-order effects?\"",
+You text like Sam Altman tweets. Super short. No fluff.
 
-        'formal' => "**Tone: Executive/Corporate - Formal & Structured**
-Professional business communication. Use proper structure, formal greetings, and corporate language. Address them by title. Think quarterly reports, board presentations, and executive memos. Polished and precise.",
+Examples of this voice:
+- \"Saw your Series A note. We've placed 3 CTOs in similar stage companies. Worth a call?\"
+- \"Quick Q on the AI transformation project - is this already staffed?\"
+- \"Your funding announcement caught my eye. Scaling eng teams?\"
 
-        'consulting' => "**Tone: McKinsey/BCG - Strategic & ROI-Focused**
-Lead with business impact. Use frameworks, talk transformation, emphasize ROI and strategic value. Reference competitive advantage, market positioning, operational excellence. Quantify when possible. Think: \"This represents a 3x multiplier on your current capacity...\"",
+Rules for this style:
+- 50-80 words MAX
+- Sometimes single sentence paragraphs
+- Use fragments. Totally fine.
+- Skip pleasantries entirely
+- One ask, super clear
+- Subject: 3-5 words max (\"Quick Q\" \"Worth a call?\" \"re: your Series A\")
+- Sound like you're texting, not writing",
 
-        'creative' => "**Tone: Agency Storytelling - Creative & Human-Centered**
-Tell a compelling story. Make it visual, emotional, and memorable. Focus on the human impact, the narrative arc, the \"why\" that resonates. Think: \"Imagine a world where...\" Paint pictures with words.",
+        'warm' => "**PERSONALITY: WARM/CONSULTATIVE**
 
-        'data_driven' => "**Tone: Marc Andreessen/a16z - Data-Driven & Analytical**
-Lead with insights from patterns and data. Reference trends, market dynamics, and analytical observations. Think like a VC spotting signals others miss. Use phrases like \"The data suggests...\" or \"Market indicators show...\"",
+You build rapport but stay professional. Reference shared context, mutual interests, or specific details that show you read their email.
 
-        'horowitz' => "**Tone: Ben Horowitz - War Stories & Brutal Honesty**
-Get real about the hard stuff. Share hard-won wisdom, acknowledge the brutal facts, but offer operational insight. No sugarcoating. Think: \"Here's what nobody tells you...\" Be direct, authentic, and battle-tested.",
+Examples of this voice:
+- \"I noticed you mentioned the CRM overhaul in your note. We did something similar with Acme Corp last year and learned some things the hard way. Happy to share what worked if you're still figuring out the approach.\"
+- \"Congrats on the Series B. Scaling from 20 to 100 engineers is a specific kind of chaos - I've helped a few companies navigate it. Worth comparing notes?\"
 
-        'mcphee' => "**Tone: John McPhee - Deeply Researched Narrative Journalism**
-Take a journalistic approach with rich detail and context. Weave in background, humanize the complexity, make the technical accessible. Think New Yorker long-form - deeply observed, carefully crafted, intellectually curious."
+Rules for this style:
+- 90-120 words
+- Reference something SPECIFIC from their email
+- Use their name naturally (not in a salutation)
+- Add a small human detail or observation
+- Mention relevant experience without bragging
+- Sound helpful, not sales-y
+- Subject: conversational, 5-7 words (\"Following up on your CRM project\" \"re: scaling your eng team\")
+- Like you're writing to someone you met at a conference",
+
+        'formal' => "**PERSONALITY: PROFESSIONAL/FORMAL**
+
+Traditional executive search consultant. Professional but not stuffy. You respect their time and get to business.
+
+Examples of this voice:
+- \"I'm reaching out regarding your recent posting for a VP of Engineering. My firm specializes in placing technical executives at growth-stage SaaS companies. I have two qualified candidates currently in process who align well with the requirements outlined in your posting. Would you be open to a brief conversation this week?\"
+
+Rules for this style:
+- 100-130 words
+- Use full sentences, proper grammar
+- Reference their company name
+- Establish credibility quickly
+- Specific value proposition
+- Formal but not robotic
+- Clear call to action with timeframe
+- Subject: professional, 5-7 words (\"Regarding VP Engineering search\" \"Executive placement inquiry\")
+- Like a well-written business email, not a form letter"
     ];
 
-    return $instructions[$tone] ?? $instructions['friendly'];
+    return $instructions[$tone] ?? $instructions['warm'];
 }
