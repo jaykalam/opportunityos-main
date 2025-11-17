@@ -85,6 +85,60 @@ $connected = isset($_GET['connected']) && $_GET['connected'] === 'true';
         </div>
     </main>
 
+    <!-- Draft Email Modal -->
+    <div id="draft-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); z-index: 1000; justify-content: center; align-items: center;">
+        <div style="background: white; border-radius: 8px; width: 90%; max-width: 700px; max-height: 90vh; overflow-y: auto; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);">
+            <div style="padding: 1.5rem; border-bottom: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center;">
+                <h2 style="font-size: 1.5rem; font-weight: 600; margin: 0;">Draft Email</h2>
+                <button onclick="closeDraftModal()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #6b7280; padding: 0; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;">&times;</button>
+            </div>
+            <div style="padding: 1.5rem;">
+                <div style="margin-bottom: 1.5rem;">
+                    <label for="tone-select" style="display: block; font-weight: 500; margin-bottom: 0.5rem; color: #374151;">Communication Tone</label>
+                    <select id="tone-select" onchange="generateDraft()" style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 4px; font-size: 1rem; background: white; cursor: pointer;">
+                        <option value="">Select a tone...</option>
+                        <option value="friendly">Friendly (Paul Graham/YC) - Conversational, helpful</option>
+                        <option value="contrarian">Contrarian (Peter Thiel) - Provocative questions</option>
+                        <option value="formal">Formal (Executive) - Structured, professional</option>
+                        <option value="consulting">Consulting (McKinsey/BCG) - Strategic, ROI-focused</option>
+                        <option value="creative">Creative (Agency) - Storytelling, human-centered</option>
+                        <option value="data_driven">Data-Driven (a16z) - Analytical, pattern recognition</option>
+                        <option value="horowitz">Horowitz (Ben Horowitz) - War stories, brutal honesty</option>
+                        <option value="mcphee">McPhee (John McPhee) - Deep narrative journalism</option>
+                    </select>
+                </div>
+
+                <div id="draft-loading" style="display: none; text-align: center; padding: 2rem; color: #6b7280;">
+                    <div style="margin-bottom: 0.5rem;">Generating your email draft...</div>
+                    <div style="font-size: 0.875rem;">This may take a few seconds</div>
+                </div>
+
+                <div id="draft-error" style="display: none; padding: 1rem; background: #fee2e2; border: 1px solid #fecaca; border-radius: 4px; color: #991b1b; margin-bottom: 1rem;"></div>
+
+                <div id="draft-content" style="display: none;">
+                    <div style="margin-bottom: 1.5rem;">
+                        <label style="display: block; font-weight: 500; margin-bottom: 0.5rem; color: #374151;">Subject Line</label>
+                        <div id="draft-subject" style="padding: 0.75rem; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 4px; font-family: monospace; font-size: 0.875rem;"></div>
+                    </div>
+
+                    <div style="margin-bottom: 1.5rem;">
+                        <label style="display: block; font-weight: 500; margin-bottom: 0.5rem; color: #374151;">Email Body</label>
+                        <div id="draft-body" style="padding: 1rem; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 4px; white-space: pre-wrap; font-family: system-ui; font-size: 0.875rem; line-height: 1.6; min-height: 200px;"></div>
+                    </div>
+
+                    <div style="display: flex; gap: 0.75rem;">
+                        <button id="copy-btn" onclick="copyDraft()" class="btn btn-primary" style="flex: 1;">
+                            Copy to Clipboard
+                        </button>
+                        <button onclick="generateDraft()" class="btn btn-secondary" style="flex: 1;">
+                            Regenerate
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
         let scanning = false;
 
@@ -200,7 +254,7 @@ $connected = isset($_GET['connected']) && $_GET['connected'] === 'true';
                                         <span style="font-weight: 500;">${opp.relevance_score}/10</span>
                                     </td>
                                     <td>
-                                        <button class="btn btn-primary" style="padding: 0.5rem 1rem; font-size: 0.875rem;">
+                                        <button class="btn btn-primary" style="padding: 0.5rem 1rem; font-size: 0.875rem;" onclick="openDraftModal(${opp.id})">
                                             Draft Email
                                         </button>
                                     </td>
@@ -226,6 +280,108 @@ $connected = isset($_GET['connected']) && $_GET['connected'] === 'true';
 
         // Load opportunities on page load
         fetchOpportunities();
+
+        // Draft Email Modal Functions
+        let currentOpportunityId = null;
+
+        function openDraftModal(opportunityId) {
+            currentOpportunityId = opportunityId;
+            const modal = document.getElementById('draft-modal');
+            const toneSelect = document.getElementById('tone-select');
+            const draftContent = document.getElementById('draft-content');
+            const draftLoading = document.getElementById('draft-loading');
+            const draftError = document.getElementById('draft-error');
+
+            // Reset modal state
+            toneSelect.value = '';
+            draftContent.style.display = 'none';
+            draftLoading.style.display = 'none';
+            draftError.style.display = 'none';
+
+            modal.style.display = 'flex';
+        }
+
+        function closeDraftModal() {
+            const modal = document.getElementById('draft-modal');
+            modal.style.display = 'none';
+            currentOpportunityId = null;
+        }
+
+        async function generateDraft() {
+            const tone = document.getElementById('tone-select').value;
+
+            if (!tone) {
+                return;
+            }
+
+            const draftContent = document.getElementById('draft-content');
+            const draftLoading = document.getElementById('draft-loading');
+            const draftError = document.getElementById('draft-error');
+
+            // Show loading state
+            draftContent.style.display = 'none';
+            draftError.style.display = 'none';
+            draftLoading.style.display = 'block';
+
+            try {
+                const response = await fetch(`api/draft.php?id=${currentOpportunityId}&tone=${tone}`);
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to generate draft');
+                }
+
+                // Display draft
+                document.getElementById('draft-subject').textContent = data.draft.subject;
+                document.getElementById('draft-body').textContent = data.draft.body;
+
+                draftLoading.style.display = 'none';
+                draftContent.style.display = 'block';
+            } catch (error) {
+                console.error('Draft generation error:', error);
+                draftError.textContent = error.message;
+                draftError.style.display = 'block';
+                draftLoading.style.display = 'none';
+            }
+        }
+
+        async function copyDraft() {
+            const subject = document.getElementById('draft-subject').textContent;
+            const body = document.getElementById('draft-body').textContent;
+            const fullText = `Subject: ${subject}\n\n${body}`;
+
+            try {
+                await navigator.clipboard.writeText(fullText);
+
+                // Show feedback
+                const btn = document.getElementById('copy-btn');
+                const originalText = btn.textContent;
+                btn.textContent = 'Copied!';
+                btn.style.background = '#10b981';
+
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                    btn.style.background = '';
+                }, 2000);
+            } catch (error) {
+                console.error('Copy failed:', error);
+                alert('Failed to copy to clipboard. Please select and copy manually.');
+            }
+        }
+
+        // Close modal on escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeDraftModal();
+            }
+        });
+
+        // Close modal when clicking outside
+        document.getElementById('draft-modal').addEventListener('click', (e) => {
+            if (e.target.id === 'draft-modal') {
+                closeDraftModal();
+            }
+        });
     </script>
 </body>
 </html>
