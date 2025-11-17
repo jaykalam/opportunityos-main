@@ -41,10 +41,18 @@ function initializeDatabase() {
             company_name TEXT,
             email_date TEXT NOT NULL,
             email_snippet TEXT,
+            company_context TEXT,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
         )
     ");
+
+    // Add company_context column if it doesn't exist (migration for existing databases)
+    try {
+        $db->exec("ALTER TABLE opportunities ADD COLUMN company_context TEXT");
+    } catch (PDOException $e) {
+        // Column already exists, ignore error
+    }
 
     // Create indexes
     $db->exec("CREATE INDEX IF NOT EXISTS idx_user_id ON opportunities(user_id)");
@@ -113,6 +121,16 @@ function getOpportunitiesByUser($userId, $limit = 50) {
     ");
     $stmt->execute([$userId, $limit]);
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+function updateOpportunityContext($opportunityId, $companyContext) {
+    $db = getDatabase();
+    $stmt = $db->prepare("
+        UPDATE opportunities
+        SET company_context = ?
+        WHERE id = ?
+    ");
+    $stmt->execute([$companyContext, $opportunityId]);
 }
 
 // Initialize database on first load

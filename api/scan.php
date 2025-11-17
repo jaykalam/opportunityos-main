@@ -3,6 +3,7 @@ require_once __DIR__ . '/../config/config.php';
 require_once __DIR__ . '/../includes/db.php';
 require_once __DIR__ . '/../includes/gmail.php';
 require_once __DIR__ . '/../includes/classifier.php';
+require_once __DIR__ . '/../includes/perplexity.php';
 
 header('Content-Type: application/json');
 
@@ -56,6 +57,22 @@ try {
                     $email['date'],
                     $email['snippet']
                 );
+
+                // Enrich with company context (don't fail if this errors)
+                try {
+                    if (!empty($classification['company_name'])) {
+                        $companyContext = searchCompanyNews(
+                            $classification['company_name'],
+                            $classification['type']
+                        );
+
+                        if (!empty($companyContext)) {
+                            updateOpportunityContext($opportunityId, $companyContext);
+                        }
+                    }
+                } catch (Exception $e) {
+                    error_log('Company context enrichment failed for opportunity ' . $opportunityId . ': ' . $e->getMessage());
+                }
 
                 $results[] = [
                     'id' => $opportunityId,

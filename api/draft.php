@@ -63,6 +63,12 @@ function generateEmailDraft($opportunity, $tone) {
     // Build tone-specific instructions
     $toneInstructions = getToneInstructions($tone);
 
+    // Build context section
+    $contextSection = '';
+    if (!empty($opportunity['company_context'])) {
+        $contextSection = "\n**Recent Context About Company:**\n{$opportunity['company_context']}\n";
+    }
+
     // Build the prompt
     $prompt = "You are drafting an outreach email in response to this opportunity:
 
@@ -71,14 +77,14 @@ function generateEmailDraft($opportunity, $tone) {
 **Email Subject:** {$opportunity['email_subject']}
 **Type:** {$opportunity['classification']}
 **Email Preview:** {$opportunity['email_snippet']}
-
+{$contextSection}
 {$toneInstructions}
 
 **Requirements:**
 - Email body must be UNDER 150 words
 - Include a compelling subject line
 - Be authentic and professional
-- Reference specific details from their email when possible
+- Reference specific details from their email when possible" . (!empty($opportunity['company_context']) ? "\n- Reference specific recent company developments from the context to show you understand their current situation" : "") . "
 - Include a clear call to action
 
 Return ONLY valid JSON in this exact format:

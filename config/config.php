@@ -12,6 +12,9 @@ define('GOOGLE_REDIRECT_URI', getenv('GOOGLE_REDIRECT_URI') ?: 'http://localhost
 // Anthropic Claude API Configuration
 define('ANTHROPIC_API_KEY', getenv('ANTHROPIC_API_KEY') ?: '');
 
+// Perplexity API Configuration
+define('PERPLEXITY_API_KEY', getenv('PERPLEXITY_API_KEY') ?: '');
+
 // Session configuration
 ini_set('session.cookie_httponly', 1);
 ini_set('session.use_strict_mode', 1);
